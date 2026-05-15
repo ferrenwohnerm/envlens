@@ -1,0 +1,74 @@
+package mask_test
+
+import (
+	"testing"
+
+	"github.com/yourorg/envlens/internal/mask"
+)
+
+func baseEnv() map[string]string {
+	return map[string]string{
+		"APP_NAME":     "envlens",
+		"DB_PASSWORD":  "s3cr3t",
+		"API_KEY":      "abc123",
+		"LOG_LEVEL":    "info",
+		"AUTH_TOKEN":   "tok_xyz",
+		"REGION":       "us-east-1",
+	}
+}
+
+func TestApply_MasksSensitiveKeys(t *testing.T) {
+	result := mask.Apply(baseEnv(), mask.Options{})
+
+	sensitive := []string{"DB_PASSWORD", "API_KEY", "AUTH_TOKEN"}
+	for _, k := range sensitive {
+		if result[k] != "***" {
+			t.Errorf("expected key %q to be masked, got %q", k, result[k])
+		}
+	}
+}
+
+func TestApply_PreservesNonSensitiveKeys(t *testing.T) {
+	result := mask.Apply(baseEnv(), mask.Options{})
+
+	plain := map[string]string{"APP_NAME": "envlens", "LOG_LEVEL": "info", "REGION": "us-east-1"}
+	for k, want := range plain {
+		if result[k] != want {
+			t.Errorf("key %q: expected %q, got %q", k, want, result[k])
+		}
+	}
+}
+
+func TestApply_MaskAll_MasksEverything(t *testing.T) {
+	result := mask.Apply(baseEnv(), mask.Options{MaskAll: true})
+	for k, v := range result {
+		if v != "***" {
+			t.Errorf("MaskAll: key %q should be masked, got %q", k, v)
+		}
+	}
+}
+
+func TestApply_CustomPlaceholder(t *testing.T) {
+	result := mask.Apply(baseEnv(), mask.Options{MaskAll: true, Placeholder: "<redacted>"})
+	for k, v := range result {
+		if v != "<redacted>" {
+			t.Errorf("key %q: expected "+ "<redacted>"+", got %q", k, v)
+		}
+	}
+}
+
+func TestApply_EmptyMap(t *testing.T) {
+	result := mask.Apply(map[string]string{}, mask.Options{})
+	if len(result) != 0 {
+		t.Errorf("expected empty map, got %d entries", len(result))
+	}
+}
+
+func TestApply_DoesNotMutateInput(t *testing.T) {
+	input := baseEnv()
+	orig := input["DB_PASSWORD"]
+	mask.Apply(input, mask.Options{})
+	if input["DB_PASSWORD"] != orig {
+		t.Error("Apply must not mutate the input map")
+	}
+}
