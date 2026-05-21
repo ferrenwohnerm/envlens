@@ -8,12 +8,12 @@ import (
 
 func baseEnv() map[string]string {
 	return map[string]string{
-		"APP_NAME":     "envlens",
-		"DB_PASSWORD":  "s3cr3t",
-		"API_KEY":      "abc123",
-		"LOG_LEVEL":    "info",
-		"AUTH_TOKEN":   "tok_xyz",
-		"REGION":       "us-east-1",
+		"APP_NAME":    "envlens",
+		"DB_PASSWORD": "s3cr3t",
+		"API_KEY":     "abc123",
+		"LOG_LEVEL":   "info",
+		"AUTH_TOKEN":  "tok_xyz",
+		"REGION":      "us-east-1",
 	}
 }
 
@@ -52,7 +52,7 @@ func TestApply_CustomPlaceholder(t *testing.T) {
 	result := mask.Apply(baseEnv(), mask.Options{MaskAll: true, Placeholder: "<redacted>"})
 	for k, v := range result {
 		if v != "<redacted>" {
-			t.Errorf("key %q: expected "+ "<redacted>"+", got %q", k, v)
+			t.Errorf("key %q: expected \"<redacted>\", got %q", k, v)
 		}
 	}
 }
@@ -70,5 +70,24 @@ func TestApply_DoesNotMutateInput(t *testing.T) {
 	mask.Apply(input, mask.Options{})
 	if input["DB_PASSWORD"] != orig {
 		t.Error("Apply must not mutate the input map")
+	}
+}
+
+func TestApply_CustomSensitiveKeys(t *testing.T) {
+	env := map[string]string{
+		"MY_SECRET":  "hunter2",
+		"APP_NAME":   "envlens",
+		"PRIVATE_KEY": "rsa-data",
+	}
+	result := mask.Apply(env, mask.Options{SensitiveKeys: []string{"MY_SECRET", "PRIVATE_KEY"}})
+
+	if result["MY_SECRET"] != "***" {
+		t.Errorf("expected MY_SECRET to be masked, got %q", result["MY_SECRET"])
+	}
+	if result["PRIVATE_KEY"] != "***" {
+		t.Errorf("expected PRIVATE_KEY to be masked, got %q", result["PRIVATE_KEY"])
+	}
+	if result["APP_NAME"] != "envlens" {
+		t.Errorf("expected APP_NAME to be preserved, got %q", result["APP_NAME"])
 	}
 }
