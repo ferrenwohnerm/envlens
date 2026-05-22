@@ -75,8 +75,8 @@ func TestApply_DoesNotMutateInput(t *testing.T) {
 
 func TestApply_CustomSensitiveKeys(t *testing.T) {
 	env := map[string]string{
-		"MY_SECRET":  "hunter2",
-		"APP_NAME":   "envlens",
+		"MY_SECRET":   "hunter2",
+		"APP_NAME":    "envlens",
 		"PRIVATE_KEY": "rsa-data",
 	}
 	result := mask.Apply(env, mask.Options{SensitiveKeys: []string{"MY_SECRET", "PRIVATE_KEY"}})
@@ -89,5 +89,13 @@ func TestApply_CustomSensitiveKeys(t *testing.T) {
 	}
 	if result["APP_NAME"] != "envlens" {
 		t.Errorf("expected APP_NAME to be preserved, got %q", result["APP_NAME"])
+	}
+}
+
+func TestApply_ResultHasSameKeyCount(t *testing.T) {
+	input := baseEnv()
+	result := mask.Apply(input, mask.Options{})
+	if len(result) != len(input) {
+		t.Errorf("expected result to have %d keys, got %d", len(input), len(result))
 	}
 }
