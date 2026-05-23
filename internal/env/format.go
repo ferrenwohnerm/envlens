@@ -40,3 +40,19 @@ func WriteSummary(w io.Writer, vars map[string]string) error {
 	_, err := fmt.Fprintf(w, "%d variable(s): %s\n", len(keys), strings.Join(keys, ", "))
 	return err
 }
+
+// WriteDotEnv writes vars to w in .env file format, suitable for use with
+// tools like dotenv. Values containing spaces or special characters are
+// quoted. Keys are sorted alphabetically.
+func WriteDotEnv(w io.Writer, vars map[string]string) error {
+	for _, k := range SortedKeys(vars) {
+		v := vars[k]
+		if strings.ContainsAny(v, " \t\n\r#\'\"\\") {
+			v = fmt.Sprintf("%q", v)
+		}
+		if _, err := fmt.Fprintf(w, "%s=%s\n", k, v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
